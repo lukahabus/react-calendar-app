@@ -1,3 +1,5 @@
+import moment from "moment";
+
 export const getDaysInMonth = (monthMoment) => {
   const monthCopy = monthMoment.clone();
   monthCopy.startOf("month");
@@ -49,7 +51,9 @@ const daysOfTheWeek = [
   "Sunday",
 ];
 
-export const Calendar = ({ currentMonthMoment, onPrev, onNext }) => {
+export const Calendar = ({ month, year, onPrev, onNext }) => {
+  const currentMonthMoment = moment(`${month}${year}`, "MMYYYY");
+
   const weeks = segmentIntoWeeks(getDaysInMonth(currentMonthMoment));
 
   return (

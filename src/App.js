@@ -1,8 +1,13 @@
-import { CalendarController } from "./CalendarController";
+import { BrowserRouter } from "react-router-dom";
+import { QueryParamsCalendarController } from "./QueryParamsCalendarController";
 import "./App.css";
 
 function App() {
-  return <CalendarController />;
+  return (
+    <BrowserRouter>
+      <QueryParamsCalendarController />
+    </BrowserRouter>
+  );
 }
 
 export default App;
