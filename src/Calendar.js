@@ -1,6 +1,3 @@
-import { useState } from "react";
-import moment from "moment";
-
 export const getDaysInMonth = (monthMoment) => {
   const monthCopy = monthMoment.clone();
   monthCopy.startOf("month");
@@ -52,26 +49,14 @@ const daysOfTheWeek = [
   "Sunday",
 ];
 
-export const Calendar = () => {
-  const today = moment();
-
-  const [currentMonthMoment, setCurrentMonthMoment] = useState(today);
-
+export const Calendar = ({ currentMonthMoment, onPrev, onNext }) => {
   const weeks = segmentIntoWeeks(getDaysInMonth(currentMonthMoment));
-
-  const incrementMonth = () => {
-    setCurrentMonthMoment(moment(currentMonthMoment.add(1, "months")));
-  };
-
-  const decrementMonth = () => {
-    setCurrentMonthMoment(moment(currentMonthMoment.subtract(1, "months")));
-  };
 
   return (
     <>
       <h1>{currentMonthMoment.format("MMMM YYYY")}</h1>
-      <button onClick={decrementMonth}>Prev</button>
-      <button onClick={incrementMonth}>Next</button>
+      <button onClick={onPrev}>Prev</button>
+      <button onClick={onNext}>Next</button>
       <table>
         <thead>
           <tr>
