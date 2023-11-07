@@ -9,7 +9,6 @@ export const CalendarController = () => {
   const [events, setEvents] = useState([]);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-
   const { search } = useLocation();
   let navigate = useNavigate();
   const month = new URLSearchParams(search).get("m");
@@ -20,6 +19,49 @@ export const CalendarController = () => {
   const [currentMonthMoment, setCurrentMonthMoment] = useState(
     month && year ? moment(`${month}${year}`, "MMYYYY") : today
   );
+
+  const fetchCommitsForMonth = async (monthMoment) => {
+    const since = monthMoment.startOf("month").toISOString();
+    const until = monthMoment.endOf("month").toISOString();
+
+    let commitsForMonth = [];
+    let page = 1;
+    let hasMoreCommits = true;
+
+    while (hasMoreCommits) {
+      const response = await fetch(
+        `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
+      );
+      const commits = await response.json();
+
+      if (commits.length > 0) {
+        commitsForMonth = commitsForMonth.concat(commits);
+        page++;
+      } else {
+        hasMoreCommits = false;
+      }
+    }
+
+    const processedCommits = {};
+    commitsForMonth.forEach((commit) => {
+      const date = moment(commit.commit.author.date)
+        .startOf("day")
+        .format("YYYY-MM-DD");
+      if (!processedCommits[date]) {
+        processedCommits[date] = {
+          name: commit.commit.message.slice(0, 14),
+          date: moment(commit.commit.author.date).startOf("day"),
+          time: moment(commit.commit.author.date).format("HH:mm"),
+        };
+      }
+    });
+
+    setEvents(Object.values(processedCommits));
+  };
+
+  useEffect(() => {
+    fetchCommitsForMonth(currentMonthMoment);
+  }, [currentMonthMoment]);
 
   const incrementMonth = () => {
     const newMonth = moment(currentMonthMoment).add(1, "months");

@@ -5,16 +5,19 @@ const Cell = styled.div`
   border: 1px solid #eee;
   position: relative;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
 
   &:hover {
-    background-color: #eee;
+    background-color: #f0f0f0;
   }
 `;
 
 const EmptyCell = styled.div`
   border: 1px solid #eee;
   position: relative;
-    height: 100%;
+  height: 100%;
 `;
 
 const DateNumber = styled.div`
@@ -33,15 +36,26 @@ const DateNumber = styled.div`
   text-align: center;
 `;
 
+const EventContainer = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 5px;
+`;
 
 export const CalendarCell = ({ dateNumber = '', events = [] }) => {
-    if(dateNumber === '') {
-        return <EmptyCell />
-    }
-    return (
-        <Cell>
-            <DateNumber>{dateNumber}</DateNumber>
-            {events.map(event => <Event key={event.name} name={event.name} time={event.time} />)}
-        </Cell>
-    )
-}
+  if (dateNumber === '') {
+    return <EmptyCell />;
+  }
+  return (
+    <Cell>
+      <DateNumber>{dateNumber}</DateNumber>
+      <EventContainer>
+        {events.map((event, index) => (
+          <Event key={index} name={event.name} time={event.time} />
+        ))}
+      </EventContainer>
+    </Cell>
+  );
+};

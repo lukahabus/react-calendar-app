@@ -1,5 +1,4 @@
 import { useState } from "react";
-import moment from "moment";
 
 export const NewEventForm = ({ onSubmit }) => {
   const [name, setName] = useState("");
