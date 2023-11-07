@@ -8,6 +8,6 @@ const EventBox = styled.div`
     margin-bottom: 4px;
 `;
 
-export const Event = ({ name }) => {
-    return <EventBox>{name}</EventBox>;
+export const Event = ({ name, time }) => {
+    return <EventBox>{name} - {time}</EventBox>;
 };

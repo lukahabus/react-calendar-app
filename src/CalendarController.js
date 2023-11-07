@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import moment from "moment";
 import { Calendar } from "./Calendar";
 import { Modal } from "./Modal";
@@ -23,18 +23,18 @@ export const CalendarController = () => {
 
   const incrementMonth = () => {
     const newMonth = moment(currentMonthMoment).add(1, "months");
-    navigate(`?m=${newMonth.format("MM")}&y=${newMonth.format("YYYY")}`);
+    navigate(`/${newMonth.format("YYYY-MM")}`);
     setCurrentMonthMoment(newMonth);
   };
 
   const decrementMonth = () => {
     const newMonth = moment(currentMonthMoment).subtract(1, "months");
-    navigate(`?m=${newMonth.format("MM")}&y=${newMonth.format("YYYY")}`);
+    navigate(`/${newMonth.format("YYYY-MM")}`);
     setCurrentMonthMoment(newMonth);
   };
 
-  const createNewEvent = (name) => {
-    setEvents(events.concat({ name, date: selectedDate }));
+  const createNewEvent = (name, time) => {
+    setEvents(events.concat({ name, time, date: selectedDate }));
     setShowNewEventModal(false);
     setSelectedDate(null);
   };
@@ -45,17 +45,33 @@ export const CalendarController = () => {
     setShowNewEventModal(true);
   };
 
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/\/(\d{4})-(\d{2})/);
+    if (match) {
+      const [, year, month] = match;
+      setCurrentMonthMoment(moment(`${year}-${month}`, "YYYY-MM"));
+    }
+  }, [search]);
+
   return (
     <>
       <Modal
         shouldShow={showNewEventModal}
         onRequestClose={() => setShowNewEventModal(false)}
       >
-        <h3>New Event for {selectedDate && selectedDate.format('DD/MM/YYYY')}</h3>
+        <h3>
+          New Event for {selectedDate && selectedDate.format("DD/MM/YYYY")}
+        </h3>
         <NewEventForm onSubmit={createNewEvent} />
       </Modal>
       <Calendar
-        events={events}
+        getCellProps={(dayMoment) => {
+          const eventsForDay = events.filter((event) => {
+            return dayMoment && event.date.isSame(dayMoment, "day");
+          });
+          return { events: eventsForDay };
+        }}
         onCellClicked={displayModal}
         month={currentMonthMoment.format("MM")}
         year={currentMonthMoment.format("YYYY")}
