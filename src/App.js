@@ -1,10 +1,10 @@
 import moment from 'moment';
-import { getDaysInMonth } from './Calendar';
+import { segmentIntoWeeks, getDaysInMonth } from './Calendar';
 import './App.css';
 
 function App() {
-  const days = getDaysInMonth(moment());
-  console.log(days);
+  const weeks = segmentIntoWeeks(getDaysInMonth(moment()));
+  console.log(weeks);
   return (
     <h1>Calendar App</h1>
   );
