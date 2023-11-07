@@ -26,9 +26,68 @@ export const segmentIntoWeeks = (dayMoments) => {
     }
   }
 
-  if(currentWeek.length > 0) {
+  if (currentWeek.length > 0) {
     weeks.push(currentWeek);
   }
 
   return weeks;
+};
+
+const padWeekFront = (week, padWidth = null) => {
+  return [...Array(7 - week.length).fill(padWidth), ...week];
+};
+
+const padWeekBack = (week, padWidth = null) => {
+  return [...week, ...Array(7 - week.length).fill(padWidth)];
+};
+
+const daysOfTheWeek = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+export const Calendar = () => {
+  const currentMonthMoment = moment();
+  const weeks = segmentIntoWeeks(getDaysInMonth(currentMonthMoment));
+
+  return (
+    <>
+      <h1>{currentMonthMoment.format("MMMM YYYY")}</h1>
+      <table>
+        <thead>
+          <tr>
+            {daysOfTheWeek.map((day) => (
+              <th key={day}>{day}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {weeks.map((week, index) => {
+            const displayWeek =
+              index === 0
+                ? padWeekFront(week)
+                : index === weeks.length - 1
+                ? padWeekBack(week)
+                : week;
+            return (
+              <tr key={index}>
+                {displayWeek.map((dayMoment, j) =>
+                  dayMoment ? (
+                    <td key={dayMoment.format("D")}>{dayMoment.format("D")}</td>
+                  ) : (
+                    <td key={`${index}${j}`}></td>
+                  )
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
+  );
 };
