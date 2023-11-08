@@ -35,12 +35,7 @@ export const CalendarController = () => {
       try {
         while (hasMore) {
           const response = await fetch(
-            `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`,
-            {
-              headers: {
-                Authorization: `Bearer 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`,
-              },
-            }
+            `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
           );
 
           if (!response.ok) {
@@ -65,7 +60,7 @@ export const CalendarController = () => {
           name: commit.commit.message.slice(0, 14),
           date: moment(commit.commit.author.date).startOf("day"),
           time: moment(commit.commit.author.date).format("HH:mm"),
-          author: commit.author.login ? commit.author.login : "Unknown",
+          author: commit.author.login,
         }));
 
         setCommitsCache((prevCache) => ({
