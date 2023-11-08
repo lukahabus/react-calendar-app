@@ -1,89 +1,121 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import moment from "moment";
 import { Calendar } from "./Calendar";
 import { Modal } from "./Modal";
-import { NewEventForm } from "./NewEventForm";
 
 export const CalendarController = () => {
   const [events, setEvents] = useState([]);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedCommit, setSelectedCommit] = useState(null);
+  const [commitsCache, setCommitsCache] = useState({});
   const { search } = useLocation();
   let navigate = useNavigate();
   const month = new URLSearchParams(search).get("m");
   const year = new URLSearchParams(search).get("y");
 
   const today = moment();
-
   const [currentMonthMoment, setCurrentMonthMoment] = useState(
-    month && year ? moment(`${month}${year}`, "MMYYYY") : today
+    month && year ? moment(`${year}-${month}`, "YYYY-MM") : today
   );
 
-  const fetchCommitsForMonth = async (monthMoment) => {
-    const since = monthMoment.startOf("month").toISOString();
-    const until = monthMoment.endOf("month").toISOString();
-
-    let commitsForMonth = [];
-    let page = 1;
-    let hasMoreCommits = true;
-
-    while (hasMoreCommits) {
-      const response = await fetch(
-        `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
-      );
-      const commits = await response.json();
-
-      if (commits.length > 0) {
-        commitsForMonth = commitsForMonth.concat(commits);
-        page++;
-      } else {
-        hasMoreCommits = false;
+  const fetchCommits = useCallback(
+    async (monthMoment) => {
+      const monthKey = monthMoment.format("YYYY-MM");
+      if (commitsCache[monthKey]) {
+        return commitsCache[monthKey];
       }
-    }
 
-    const processedCommits = {};
-    commitsForMonth.forEach((commit) => {
-      const date = moment(commit.commit.author.date)
-        .startOf("day")
-        .format("YYYY-MM-DD");
-      if (!processedCommits[date]) {
-        processedCommits[date] = {
+      const since = monthMoment.startOf("month").toISOString();
+      const until = monthMoment.endOf("month").toISOString();
+      let allCommits = [];
+      let page = 1;
+      let hasMore = true;
+
+      try {
+        while (hasMore) {
+          const response = await fetch(
+            `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
+          );
+
+          if (!response.ok) {
+            console.error("Fetch error:", response.statusText);
+            break;
+          }
+
+          const commits = await response.json();
+
+          if (!Array.isArray(commits)) {
+            console.error("Response is not an array:", commits);
+            break;
+          }
+
+          allCommits = allCommits.concat(commits);
+          page++;
+          hasMore = commits.length === 100;
+        }
+
+        const processedCommits = allCommits.map((commit) => ({
+          fullMessage: commit.commit.message,
           name: commit.commit.message.slice(0, 14),
           date: moment(commit.commit.author.date).startOf("day"),
           time: moment(commit.commit.author.date).format("HH:mm"),
-        };
-      }
-    });
+          author: commit.author.login,
+        }));
 
-    setEvents(Object.values(processedCommits));
-  };
+        setCommitsCache((prevCache) => ({
+          ...prevCache,
+          [monthKey]: processedCommits,
+        }));
+        return processedCommits;
+      } catch (error) {
+        console.error("Fetch failed:", error);
+        return [];
+      }
+    },
+    [commitsCache]
+  );
+
+  const fetchAndSetCommitsForMonth = useCallback(
+    async (monthMoment) => {
+      const commits = await fetchCommits(monthMoment);
+      if (monthMoment.isSame(currentMonthMoment, "month")) {
+        setEvents(commits);
+      }
+    },
+    [fetchCommits, currentMonthMoment]
+  );
 
   useEffect(() => {
-    fetchCommitsForMonth(currentMonthMoment);
-  }, [currentMonthMoment]);
+    const monthsToFetch = [
+      currentMonthMoment,
+      currentMonthMoment.clone().subtract(1, "months"),
+      currentMonthMoment.clone().subtract(2, "months"),
+      currentMonthMoment.clone().subtract(3, "months"),
+      currentMonthMoment.clone().add(1, "months"),
+      currentMonthMoment.clone().add(2, "months"),
+      currentMonthMoment.clone().add(3, "months"),
+    ];
+
+    monthsToFetch.forEach((month) => {
+      fetchAndSetCommitsForMonth(month);
+    });
+  }, [currentMonthMoment, fetchAndSetCommitsForMonth]);
 
   const incrementMonth = () => {
-    const newMonth = moment(currentMonthMoment).add(1, "months");
+    const newMonth = currentMonthMoment.clone().add(1, "months");
     navigate(`/${newMonth.format("YYYY-MM")}`);
     setCurrentMonthMoment(newMonth);
   };
 
   const decrementMonth = () => {
-    const newMonth = moment(currentMonthMoment).subtract(1, "months");
+    const newMonth = currentMonthMoment.clone().subtract(1, "months");
     navigate(`/${newMonth.format("YYYY-MM")}`);
     setCurrentMonthMoment(newMonth);
   };
 
-  const createNewEvent = (name, time) => {
-    setEvents(events.concat({ name, time, date: selectedDate }));
-    setShowNewEventModal(false);
-    setSelectedDate(null);
-  };
-
-  const displayModal = (date, month, year) => {
-    console.log(date, month, year);
-    setSelectedDate(moment(`${date}${month}${year}`, "DDMMYYYY"));
+  const displayModal = (commit) => {
+    setSelectedCommit(commit);
     setShowNewEventModal(true);
   };
 
@@ -100,21 +132,46 @@ export const CalendarController = () => {
     <>
       <Modal
         shouldShow={showNewEventModal}
-        onRequestClose={() => setShowNewEventModal(false)}
+        onRequestClose={() => {
+          setShowNewEventModal(false);
+          setSelectedCommit(null);
+        }}
       >
-        <h3>
-          New Event for {selectedDate && selectedDate.format("DD/MM/YYYY")}
-        </h3>
-        <NewEventForm onSubmit={createNewEvent} />
+        {selectedCommit && (
+          <>
+            <h3>Commit Details</h3>
+            <p>
+              <strong>Message:</strong> {selectedCommit.fullMessage}
+            </p>
+            <p>
+              <strong>Date:</strong> {selectedCommit.date.format("DD.MM.YYYY")}
+            </p>
+            <p>
+              <strong>Time:</strong> {selectedCommit.time}
+            </p>
+            <p>
+              <strong>Author:</strong> {selectedCommit.author}
+            </p>
+          </>
+        )}
       </Modal>
+
       <Calendar
         getCellProps={(dayMoment) => {
-          const eventsForDay = events.filter((event) => {
+          const eventForDay = events.find((event) => {
             return dayMoment && event.date.isSame(dayMoment, "day");
           });
-          return { events: eventsForDay };
+          return { events: eventForDay ? [eventForDay] : [] };
         }}
-        onCellClicked={displayModal}
+        onCellClicked={(date, month, year) => {
+          const clickedDate = moment(`${year}-${month}-${date}`, "YYYY-MM-DD");
+          const commitForDay = events.find((event) =>
+            event.date.isSame(clickedDate, "day")
+          );
+          if (commitForDay) {
+            displayModal(commitForDay);
+          }
+        }}
         month={currentMonthMoment.format("MM")}
         year={currentMonthMoment.format("YYYY")}
         onPrev={decrementMonth}

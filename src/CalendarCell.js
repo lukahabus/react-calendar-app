@@ -7,10 +7,9 @@ const Cell = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
-
+  cursor: ${({ hasEvents }) => (hasEvents ? 'pointer' : 'default')};
   &:hover {
-    background-color: #f0f0f0;
+    background-color: ${({ hasEvents }) => (hasEvents ? '#f0f0f0' : 'none')};
   }
 `;
 
@@ -45,16 +44,19 @@ const EventContainer = styled.div`
 `;
 
 export const CalendarCell = ({ dateNumber = '', events = [] }) => {
+  const hasEvents = events.length > 0;
+
   if (dateNumber === '') {
     return <EmptyCell />;
   }
   return (
-    <Cell>
+    <Cell hasEvents={hasEvents}>
       <DateNumber>{dateNumber}</DateNumber>
       <EventContainer>
-        {events.map((event, index) => (
-          <Event key={index} name={event.name} time={event.time} />
-        ))}
+        {hasEvents &&
+          events.map((event, index) => (
+            <Event key={index} name={event.name} time={event.time} />
+          ))}
       </EventContainer>
     </Cell>
   );
