@@ -28,3 +28,5 @@ The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+![calendar](https://github.com/lukahabus/react-calendar-app/assets/16125644/cd6ba21d-d6f1-4355-a1c4-a3080677320e)
