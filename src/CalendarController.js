@@ -19,68 +19,67 @@ export const CalendarController = () => {
     month && year ? moment(`${year}-${month}`, "YYYY-MM") : today
   );
 
-  const fetchCommits = useCallback(
-    async (monthMoment) => {
-      const monthKey = monthMoment.format("YYYY-MM");
-      if (commitsCache[monthKey]) {
-        return commitsCache[monthKey];
-      }
+  const fetchCommits = useCallback(async (monthMoment) => {
+    const monthKey = monthMoment.format("YYYY-MM");
+    if (commitsCache[monthKey]) {
+      console.log(`Cache hit for month: ${monthKey}`);
+      return commitsCache[monthKey];
+    }
 
-      const since = monthMoment.startOf("month").toISOString();
-      const until = monthMoment.endOf("month").toISOString();
-      let allCommits = [];
-      let page = 1;
-      let hasMore = true;
+    const since = monthMoment.startOf("month").toISOString();
+    const until = monthMoment.endOf("month").toISOString();
+    let allCommits = [];
+    let page = 1;
+    let hasMore = true;
 
-      try {
-        while (hasMore) {
-          const response = await fetch(
-            `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
-          );
+    try {
+      while (hasMore) {
+        const response = await fetch(
+          `https://api.github.com/repos/huggingface/transformers/commits?since=${since}&until=${until}&per_page=100&page=${page}`
+        );
 
-          if (!response.ok) {
-            console.error("Fetch error:", response.statusText);
-            break;
-          }
-
-          const commits = await response.json();
-
-          if (!Array.isArray(commits)) {
-            console.error("Response is not an array:", commits);
-            break;
-          }
-
-          allCommits = allCommits.concat(commits);
-          page++;
-          hasMore = commits.length === 100;
+        if (!response.ok) {
+          throw new Error(`Fetch error: ${response.statusText}`);
         }
 
-        const processedCommits = allCommits.map((commit) => ({
-          fullMessage: commit.commit.message,
-          name: commit.commit.message.slice(0, 14),
-          date: moment(commit.commit.author.date).startOf("day"),
-          time: moment(commit.commit.author.date).format("HH:mm"),
-          author: commit.author.login,
-        }));
+        const commits = await response.json();
 
-        setCommitsCache((prevCache) => ({
-          ...prevCache,
-          [monthKey]: processedCommits,
-        }));
-        return processedCommits;
-      } catch (error) {
-        console.error("Fetch failed:", error);
-        return [];
+        if (!Array.isArray(commits)) {
+          throw new Error(`Response is not an array: ${commits}`);
+        }
+
+        allCommits = allCommits.concat(commits);
+        page++;
+        hasMore = commits.length === 100;
       }
-    },
-    [commitsCache]
-  );
+
+      const processedCommits = allCommits.map((commit) => ({
+        fullMessage: commit.commit.message,
+        name: commit.commit.message.slice(0, 14),
+        date: moment(commit.commit.author.date).startOf("day"),
+        time: moment(commit.commit.author.date).format("HH:mm"),
+        author: commit.author ? commit.author.login : 'Unknown Author',
+      }));
+
+      setCommitsCache((prevCache) => ({
+        ...prevCache,
+        [monthKey]: processedCommits,
+      }));
+
+      console.log(`Fetched and cached commits for month: ${monthKey}`);
+      return processedCommits;
+    } catch (error) {
+      console.error(`Fetch failed for month: ${monthKey}`, error);
+      return [];
+    }
+  }, [commitsCache]);
 
   const fetchAndSetCommitsForMonth = useCallback(
     async (monthMoment) => {
       const commits = await fetchCommits(monthMoment);
       if (monthMoment.isSame(currentMonthMoment, "month")) {
         setEvents(commits);
+        console.log(`Events set for month: ${monthMoment.format("YYYY-MM")}`);
       }
     },
     [fetchCommits, currentMonthMoment]
